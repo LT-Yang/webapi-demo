@@ -3,6 +3,7 @@ from flask import jsonify, request
 import numpy as np
 import flask
 import os
+import csv
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
@@ -25,7 +26,7 @@ for i in range(nrows):
 
 @app.route('/', methods=['GET'])
 def home():
-    return "<h1>Hello Flask!</h1>"
+    return "<h1>Greetings!</h1>"
 
 @app.route('/gapminder/all', methods=['GET'])
 def gapminder_all():
@@ -35,14 +36,29 @@ def gapminder_all():
 def gapminder():
     if 'country' in request.args:
         country = request.args['country']
-    else:
-        return "Error: No country provided. Please specify a country." 
-    results = []
-    for elem in gapminder_list:
-        if elem['country'] == country:
-            results.append(elem)
+        
+        try:
+            with open('gapminder.csv', 'r', newline='') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                data = [row for row in csv_reader]
 
-    return jsonify(results)
+            if any(row['country'] == country for row in data):
+                results = []
+                for elem in gapminder_list:
+                    if elem['country'] == country:
+                        results.append(elem)
+
+                return jsonify(results)
+            
+            else:
+                return "Error: Please insert a valid country name."
+
+        except FileNotFoundError:
+            return "Error: CSV file not found."
+    else:
+        return "Error: No country provided. Please specify a country."
+    
+    
 
 if __name__ == "__main__":
     app.run(port=int(os.environ.get("PORT", 8080)),host='0.0.0.0',debug=True)
